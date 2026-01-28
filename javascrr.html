@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script href="./javas.js"></script>
+</head>
+<body>
+    <p> Trim will remove the last space <br>
+    conncate will add a particular string to the last</p>
+    <h1 id="selectid">LPU UNIVERSITY</h1>
+    <p class="selectclass">UNIVERSITY</p>
+    <h3>PUNJAB</h3>
+    <button type="button" id="btn">Submit</button>
+    <section id="hello">
+        <h1>Hello</h1>
+        <h2>EVERYONE</h2>
+        <h3>Sakshi</h3>
+    </section>
+    <div class="hello1">
+        <h1>Hello</h1>
+        <h2>EVERYONE</h2>
+        <h3>Sakshi</h3>
+    </div>
+    <script>
+        let a=document.getElementById("selectid")
+        console.log(a);
+        let b=document.getElementsByClassName("selectclass")
+        console.log(b);
+        let c=document.getElementsByTagName("h3")
+        console.log(c);
+        let d=document.querySelector("#selectid")
+        console.log(d);
+        let e=document.querySelector(".selectclass")
+        console.log(e);
+        let f=document.querySelector("h3")
+        console.log(f);
+        let g=document.querySelectorAll("#hello")
+        console.log(g)
+        let h=document.querySelectorAll(".hello1")
+        console.log(h)
+        let i=document.querySelectorAll("p")
+        console.log(i);
+        let k=document.querySelectorAll("section p")
+        console.log(k)
+        let create = document.createElement("div")
+        create.innerHTML="<h1>Khushi Sharma</h1>"
+        document.body.appendChild(create)
+        console.log(create)
+        document.body.prepend(create)
+        document.body.removeChild(create)
+        let btn=document.getElementById("btn");
+        // btn.addEventListener("click",(event)=>{
+        //     console.log(event);
+        // })
+        // btn.addEventListener("dblclick",(event)=>{
+        //     console.log(event.type);
+        // })
+        // btn.addEventListener("mouseover",(event)=>{
+        //     console.log(event.type);
+        // })
+        // btn.addEventListener("keydown",(event)=>{
+        //     console.log(event.type);
+        // })
+        btn.addEventListener("keyup",(event)=>{
+            console.log(event.type);
+        })
+
+        // FETCH API
+        fetch("https://randomuser.me/api/")
+        .then(rawdata =>rawdata.json())
+        .then(data => {console.log(data);
+        })
+        .catch(err=>{console.log(err);
+        })
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+/* section{
+    display: flex;
+    flex-direction:row-reverse;
+    justify-content: space-between;
+    height: 90vh;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+} */
+div{
+    font-size: 30px;
+    font-weight: bold;
+    height: 10vh;
+    width: 10vw;
+    BACKGROUND: AQUA;
+    border: solid 3px black;
+}
+section{
+    display: grid;
+    grid-template-columns: 100px auto;
+}

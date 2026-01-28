@@ -1,0 +1,83 @@
+/* *{
+    margin: 0;
+    padding: 0'
+} */
+div h1{
+    color: rgb(32, 5, 19);
+
+}
+div h1+p{
+    background-color: brown;
+    color: aqua;
+    font-weight: bold;
+}
+button:hover{
+    background: rgb(190, 190, 253);
+    border-radius: 50%;
+}
+input:focus{
+     background: rgb(190, 190, 253);
+}
+a:active{
+    color: burlywood;
+}
+section:nth-child(2n){
+    color: red;
+}
+section:nth-child(2n-1){
+    color: rgb(136, 221, 40);
+}
+h3::first-letter{
+    font-size:40px;
+    color: red;
+}
+h3::first-line{
+    font-size: 30px;
+    color: burlywood;
+}
+a{
+    text-decoration: none;
+}
+#lpu{
+    text-decoration: line-through;
+    text-shadow: violet 5px 5px 3px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    word-spacing: 5px;
+    line-height: 8px;
+    text-align: center;
+    direction: initial;
+    text-indent: 30px;
+}
+#clg{
+    margin: 40px;
+    padding: 40px;
+    border: 8px solid brown;
+    border-radius: 10px 20px 30px ;
+    width: 20vw;
+    height: 10vh;
+    background-color: burlywood;
+}
+.color{
+    background: linear-gradient(130deg, rgb(221, 255, 69),rgb(70, 9, 128),white);
+    height: 100vh;
+}
+.transform div{
+    height: 10vh;
+    width: 10vh;
+    background: blueviolet;
+    margin: 20px;
+}
+#rotate{
+    transform: rotate(20deg);
+}
+#scale{
+    transform: scale(1.2);
+    /* scalexand scaley */
+}
+#skew{
+    transform: skew(10deg);
+}
+#translate{
+    transform: translate(20px);
+}
