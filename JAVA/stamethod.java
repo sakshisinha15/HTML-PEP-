@@ -4,7 +4,7 @@ public class stamethod {
     }
 
     public static void main(String[] args) {
-        // System.out.println("Static Method");
+        // System.out.println("Static eMethod");
         m1();
     }
 }

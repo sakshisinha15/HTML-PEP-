@@ -1,12 +1,10 @@
 class Student {
     String name;
     int id;
-    static String clgname = "LPU";
-
+    static String clgname = "LPU";  
     Student() {
 
     }
-
     Student(String name, int id) {
         this.name = name;
         this.id = id;
