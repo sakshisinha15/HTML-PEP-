@@ -9,5 +9,6 @@ class single {
 public class singleinheritance extends single {
     public static void main(String[] args) {
         display();
+        System.out.println(a);
     }
 }

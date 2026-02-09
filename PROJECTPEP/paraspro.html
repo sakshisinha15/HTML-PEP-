@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambulance Route Optimizer</title>
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- p5.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <!-- Lottie Player -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <!-- Lucide Icons (JS UMD only) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #e0f7fa 0%, #b0bec5 100%); }
+        #canvas-container { border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 15px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        .glass-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .node-label { font-size: 12px; font-weight: 500; }
+        .toast { transition: all 0.5s ease; }
+        /* Manual dark mode support */
+        body.dark { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        body.dark #canvas-container { background: rgba(30, 41, 59, 0.8); }
+        body.dark .glass-card { background: rgba(30, 41, 59, 0.8); border-color: rgba(75, 85, 99, 0.2); }
+        body.dark #output { background: rgba(30, 41, 59, 0.5); color: #f9fafb; }
+    </style>
+</head>
+<body class="min-h-screen p-6">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-red-700 to-blue-700 text-white p-6 rounded-xl shadow-lg mb-6 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-4xl font-bold tracking-wide flex items-center space-x-3">
+                <lottie-player src="https://assets10.lottiefiles.com/packages/lf20_wgq8q1.json" background="transparent" speed="1" style="width: 48px; height: 48px;" loop autoplay></lottie-player>
+                <span>Ambulance Route Optimizer</span>
+            </h1>
+        </div>
+        <div class="flex space-x-4">
+            <button id="theme-toggle" class="bg-white text-red-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center space-x-2">
+                <span class="lucide" data-lucide="moon"></span><span>Toggle Theme</span>
+            </button>
+            <button id="help-btn" class="bg-white text-red-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center space-x-2">
+                <span class="lucide" data-lucide="help-circle"></span>
+                <span>Help</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Control Dashboard -->
+        <aside class="w-full lg:w-1/3 glass-card p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-6 flex items-center space-x-2 text-gray-800">
+                <span class="lucide" data-lucide="settings"></span><span>Control Dashboard</span>
+            </h2>
+            <!-- Graph Input -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2 text-gray-700">Graph Configuration</label>
+                <textarea id="graph-input" class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y bg-white/80 text-sm" placeholder="V E&#10;src dest weight road_type&#10;x y&#10;..."></textarea>
+                <div class="flex gap-3 mt-3">
+                    <button onclick="loadGraph()" class="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center space-x-2">
+                        <span class="lucide" data-lucide="upload"></span><span>Load Graph</span>
+                    </button>
+                    <button onclick="saveGraph()" class="w-full bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center space-x-2">
+                        <span class="lucide" data-lucide="save"></span><span>Save Graph</span>
+                    </button>
+                    <button onclick="downloadGraphPDF()" class="w-full bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition flex items-center justify-center space-x-2">
+                        <span class="lucide" data-lucide="file-down"></span>
+                        <span>Download PDF</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Node Selection -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2 text-gray-700">Source Location</label>
+                <select id="source-node" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white/80 text-sm"></select>
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2 text-gray-700">Destination Location</label>
+                <select id="dest-node" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white/80 text-sm"></select>
+            </div>
+            <!-- Traffic and Settings -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2 text-gray-700">Traffic Intensity</label>
+                <input id="traffic-slider" type="range" min="0.5" max="2" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                <span id="traffic-value" class="text-sm text-gray-600 ml-2">1.0x</span>
+            </div>
+            <div class="mb-6 flex space-x-3">
+                <button id="rush-hour" class="w-1/2 bg-yellow-600 text-white p-2 rounded-lg hover:bg-yellow-700 transition flex items-center justify-center space-x-2">
+                    <span class="lucide" data-lucide="clock"></span><span>Rush Hour</span>
+                </button>
+                <button id="road-closure" class="w-1/2 bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition flex items-center justify-center space-x-2">
+                    <span class="lucide" data-lucide="x"></span><span>Road Closure</span>
+                </button>
+            </div>
+            <div class="mb-6 flex space-x-3">
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" id="show-closed" class="accent-blue-600">
+                    <span class="text-sm text-gray-700">Show Closed Roads</span>
+                </label>
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" id="show-alternate" class="accent-blue-600">
+                    <span class="text-sm text-gray-700">Show Alternate Paths</span>
+                </label>
+            </div>
+            <button onclick="findRoute()" class="w-full bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center space-x-2">
+                <span class="lucide" data-lucide="navigation"></span><span>Find Optimal Route</span>
+            </button>
+            <button onclick="resetGraph()" class="w-full mt-3 bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600 transition flex items-center justify-center space-x-2">
+                <span class="lucide" data-lucide="rotate-ccw"></span><span>Reset</span>
+            </button>
+        </aside>
+
+        <!-- Visualization -->
+        <main class="w-full lg:w-2/3 glass-card p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-6 flex items-center space-x-2 text-gray-800">
+                <span class="lucide" data-lucide="map"></span><span>Route Visualization</span>
+            </h2>
+            <div id="canvas-container" class="w-full h-[500px] relative overflow-hidden">
+                <div id="loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80">
+                    <span class="lucide" data-lucide="loader-2"></span>
+                </div>
+            </div>
+            <div id="output" class="mt-6 p-4 rounded-lg"></div>
+            <div id="log-panel" class="mt-4 p-3 bg-gray-100 rounded-lg text-sm"></div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-green-600 text-white p-3 rounded-lg shadow-lg opacity-0 transform transition-all duration-300">
+        Action completed!
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full relative" onclick="event.stopPropagation()">
+            <button id="close-help-modal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl">
+                &times;
+            </button>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center space-x-2">
+                <span class="lucide" data-lucide="help-circle"></span>
+                <span>About This Website</span>
+            </h2>
+            <div class="text-gray-700 space-y-2">
+                <p>
+                    <strong>Ambulance Route Optimizer</strong> helps you find the fastest route for ambulances in a city, considering traffic, road closures, and more.
+                </p>
+                <p>
+                    <strong>How to Use:</strong> To get started, enter your city road network in the left panel using the provided format, or use the default sample. Select your source and destination locations from the dropdowns or by clicking on the map. Adjust the traffic slider or simulate rush hour and road closures to see how they affect the optimal route. Click "Find Optimal Route" to calculate and visualize the best path for the ambulance. You can also save your graph for later or reset to the default configuration at any time.
+                </p>
+                <ul class="list-disc list-inside text-sm">
+                    <li>Input your city's road network as a graph.</li>
+                    <li>Simulate traffic and road closures.</li>
+                    <li>Visualize optimal routes and alternate paths.</li>
+                    <li>Switch between light and dark mode for better visibility.</li>
+                </ul>
+                <p>
+                    Use the controls on the left to load your graph, set source/destination, and simulate real-world conditions!
+                </p>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // Lucide icon replacement after DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+
+        // Help modal open/close
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpModalBtn = document.getElementById('close-help-modal');
+
+        if (helpBtn && helpModal && closeHelpModalBtn) {
+            helpBtn.addEventListener('click', (e) => {
+                helpModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+            closeHelpModalBtn.addEventListener('click', (e) => {
+                helpModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+            // Close modal when clicking outside the content
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) {
+                    helpModal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+    });
+
+    // Graph data structure
+    class Graph {
+        constructor(vertices) {
+            this.V = vertices;
+            this.adj = Array(vertices).fill().map(() => []);
+            this.nodes = Array(vertices).fill().map((_, i) => ({ id: i, x: 0, y: 0, label: `Node ${i}` }));
+        }
+        addEdge(src, dest, weight, road_type) {
+            this.adj[src].push({ dest, weight, road_type });
+            this.adj[dest].push({ dest: src, weight, road_type });
+        }
+        setNodeCoordinates(id, x, y, label) {
+            this.nodes[id] = { id, x, y, label };
+        }
+    }
+
+    let graph = null, path = [], dist = [], ambulancePos = 0, animationRunning = false, isDarkMode = false;
+
+    // Priority Queue
+    class PriorityQueue {
+        constructor() { this.values = []; }
+        enqueue(val) { this.values.push(val); this.values.sort((a, b) => a[0] - b[0]); }
+        dequeue() { return this.values.shift(); }
+        isEmpty() { return this.values.length === 0; }
+    }
+
+    // Dijkstra's algorithm
+    function dijkstra(g, src, dest) {
+        try {
+            dist = Array(g.V).fill(Infinity);
+            let parent = Array(g.V).fill(-1);
+            let pq = new PriorityQueue();
+            dist[src] = 0;
+            pq.enqueue([0, src]);
+
+            while (!pq.isEmpty()) {
+                let [d, u] = pq.dequeue();
+                if (u === dest) break;
+                if (d > dist[u]) continue;
+
+                for (let e of g.adj[u]) {
+                    let v = e.dest, weight = e.weight;
+                    if (dist[u] + weight < dist[v]) {
+                        dist[v] = dist[u] + weight;
+                        parent[v] = u;
+                        pq.enqueue([dist[v], v]);
+                    }
+                }
+            }
+
+            path = [];
+            if (dist[dest] === Infinity) {
+                showToast('No path exists!', 'bg-red-600');
+                document.getElementById('output').innerText = 'No path exists';
+                return;
+            }
+
+            for (let v = dest; v !== -1; v = parent[v]) path.push(v);
+            path.reverse();
+
+            let output = `Fastest Route: ${path.map(id => graph.nodes[id].label).join(' → ')}\n`;
+            output += `Distance: ${dist[dest].toFixed(2)} km\n`;
+            output += `Estimated Time: ${dist[dest].toFixed(2)} min`;
+            document.getElementById('output').innerText = output;
+            logEvent(`Route Calculated: ${path.length} nodes`);
+            ambulancePos = 0;
+            animationRunning = true;
+            showToast('Route found!');
+            document.getElementById('loading').style.display = 'none';
+        } catch (e) {
+            showToast('Error: ' + e.message, 'bg-red-600');
+        }
+    }
+
+    // Load graph
+    function loadGraph() {
+        try {
+            const input = document.getElementById('graph-input').value.trim().split('\n');
+            const [V, E] = input[0].split(' ').map(Number);
+            graph = new Graph(V);
+
+            for (let i = 1; i <= E; i++) {
+                const [src, dest, weight, road_type] = input[i].split(' ');
+                graph.addEdge(parseInt(src), parseInt(dest), parseFloat(weight), road_type || 'arterial');
+            }
+
+            const labels = ['City Hospital', 'Main Square', 'Downtown', 'Emergency Center', 'Bypass Junction'];
+            for (let i = E + 1; i <= E + V; i++) {
+                const [x, y] = input[i].split(' ').map(Number);
+                graph.setNodeCoordinates(i - E - 1, x, y, labels[i - E - 1] || `Node ${i - E - 1}`);
+            }
+
+            updateNodeDropdowns();
+            path = [];
+            animationRunning = false;
+            logEvent('Graph Loaded');
+            showToast('Graph loaded successfully!');
+        } catch (e) {
+            showToast('Error loading graph: ' + e.message, 'bg-red-600');
+        }
+    }
+
+    // Update node dropdowns
+    function updateNodeDropdowns() {
+        const sourceSelect = document.getElementById('source-node');
+        const destSelect = document.getElementById('dest-node');
+        sourceSelect.innerHTML = destSelect.innerHTML = '';
+        if (graph) {
+            graph.nodes.forEach(node => {
+                const option1 = new Option(node.label, node.id);
+                const option2 = new Option(node.label, node.id);
+                sourceSelect.add(option1);
+                destSelect.add(option2);
+            });
+        }
+        sourceSelect.value = '0';
+        destSelect.value = graph ? (graph.V - 1).toString() : '3';
+    }
+
+    // Save graph
+    function saveGraph() {
+        if (!graph) return showToast('No graph to save!', 'bg-red-600');
+        localStorage.setItem('savedGraph', document.getElementById('graph-input').value);
+        logEvent('Graph Saved');
+        showToast('Graph saved successfully!');
+    }
+
+    // Simulate rush hour
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('rush-hour').addEventListener('click', () => {
+            if (!graph) return showToast('Load a graph first!', 'bg-red-600');
+            const factor = parseFloat(document.getElementById('traffic-slider').value) * 1.5;
+            for (let u = 0; u < graph.V; u++) {
+                for (let e of graph.adj[u]) {
+                    if (e.road_type !== 'highway') e.weight *= factor;
+                }
+            }
+            path = [];
+            animationRunning = false;
+            logEvent('Rush Hour Simulated');
+            showToast('Rush hour activated!');
+        });
+
+        // Simulate road closure
+        document.getElementById('road-closure').addEventListener('click', () => {
+            if (!graph) return showToast('Load a graph first!', 'bg-red-600');
+            const u = Math.floor(Math.random() * graph.V);
+            const edge = graph.adj[u][Math.floor(Math.random() * graph.adj[u].length)];
+            if (edge) {
+                edge.weight = Infinity;
+                graph.adj[edge.dest].find(e => e.dest === u).weight = Infinity;
+                path = [];
+                animationRunning = false;
+                logEvent(`Road Closed: ${graph.nodes[u].label} → ${graph.nodes[edge.dest].label}`);
+                showToast('Road closed!');
+            }
+        });
+
+        // Update traffic slider
+        document.getElementById('traffic-slider').addEventListener('input', (e) => {
+            document.getElementById('traffic-value').textContent = `${e.target.value}x`;
+        });
+
+        // Theme toggle
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark', isDarkMode);
+            const icon = document.querySelector('#theme-toggle .lucide');
+            icon.setAttribute('data-lucide', isDarkMode ? 'sun' : 'moon');
+            lucide.createIcons();
+            showToast(`Switched to ${isDarkMode ? 'Dark' : 'Light'} Mode!`);
+        });
+    });
+
+    // Reset graph
+    function resetGraph() {
+        document.getElementById('graph-input').value = defaultGraph;
+        loadGraph();
+        document.getElementById('traffic-slider').value = '1';
+        document.getElementById('traffic-value').innerText = '1.0x';
+        logEvent('Graph Reset');
+        showToast('Graph reset!');
+    }
+
+    // Find route
+    function findRoute() {
+        if (!graph) return showToast('Load a graph first!', 'bg-red-600');
+        const src = parseInt(document.getElementById('source-node').value);
+        const dest = parseInt(document.getElementById('dest-node').value);
+        if (isNaN(src) || isNaN(dest) || src < 0 || src >= graph.V || dest < 0 || dest >= graph.V) {
+            showToast('Invalid nodes!', 'bg-red-600');
+            return;
+        }
+        document.getElementById('loading').style.display = 'flex';
+        setTimeout(() => dijkstra(graph, src, dest), 300);
+    }
+
+    // Show toast
+    function showToast(message, bg = 'bg-green-600') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `fixed bottom-6 right-6 ${bg} text-white p-3 rounded-lg shadow-lg opacity-100 transform translate-y-0`;
+        setTimeout(() => toast.className += ' translate-y-10 opacity-0', 3000);
+    }
+
+    // Log events
+    function logEvent(message) {
+        const logPanel = document.getElementById('log-panel');
+        const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+        logPanel.innerHTML = `<div>${time} - ${message}</div>` + logPanel.innerHTML;
+        if (logPanel.children.length > 5) logPanel.removeChild(logPanel.lastChild);
+    }
+
+    // p5.js setup
+    function setup() {
+        let canvas = createCanvas(600, 500);
+        canvas.parent('canvas-container');
+        canvas.mouseClicked(handleCanvasClick);
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    // Handle canvas click
+    function handleCanvasClick() {
+        if (!graph) return;
+        for (let node of graph.nodes) {
+            let d = dist(mouseX, mouseY, node.x, node.y);
+            if (d < 20) {
+                if (!document.getElementById('source-node').dataset.selected) {
+                    document.getElementById('source-node').value = node.id;
+                    document.getElementById('source-node').dataset.selected = 'true';
+                    showToast(`Source: ${node.label}`);
+                } else {
+                    document.getElementById('dest-node').value = node.id;
+                    document.getElementById('source-node').dataset.selected = '';
+                    findRoute();
+                    showToast(`Destination: ${node.label}`);
+                }
+                break;
+            }
+        }
+    }
+
+    // p5.js draw
+    function draw() {
+        background(240, 248, 255);
+        if (!graph) return;
+
+        // Draw edges
+        for (let u = 0; u < graph.V; u++) {
+            for (let e of graph.adj[u]) {
+                if (e.dest > u) continue;
+                let weight = e.weight * parseFloat(document.getElementById('traffic-slider').value);
+                let color = weight > 15 ? '#ef4444' : weight > 10 ? '#f59e0b' : '#22c55e';
+                let thickness = map(weight, 5, 20, 2, 5, true);
+                stroke(color);
+                strokeWeight(thickness);
+                line(graph.nodes[u].x, graph.nodes[u].y, graph.nodes[e.dest].x, graph.nodes[e.dest].y);
+                if (e.weight === Infinity) {
+                    stroke('#9ca3af');
+                    strokeWeight(2);
+                    line(graph.nodes[u].x, graph.nodes[u].y, graph.nodes[e.dest].x, graph.nodes[e.dest].y);
+                }
+            }
+        }
+
+        // Draw path
+        if (path.length > 1) {
+            noFill();
+            stroke('#22c55e');
+            strokeWeight(4);
+            for (let i = 1; i < path.length; i++) {
+                let u = path[i-1], v = path[i];
+                drawingContext.setLineDash([5, 5]);
+                line(graph.nodes[u].x, graph.nodes[u].y, graph.nodes[v].x, graph.nodes[v].y);
+                drawingContext.setLineDash([]);
+            }
+
+            if (animationRunning) {
+                let t = (frameCount % 150) / 150;
+                let segment = Math.floor(ambulancePos);
+                if (segment < path.length - 1) {
+                    let u = path[segment], v = path[segment + 1];
+                    let x = lerp(graph.nodes[u].x, graph.nodes[v].x, t);
+                    let y = lerp(graph.nodes[u].y, graph.nodes[v].y, t);
+                    fill('#ef4444');
+                    noStroke();
+                    ellipse(x, y, 20, 20);
+                    ambulancePos += 0.006;
+                    if (ambulancePos >= path.length - 1) animationRunning = false;
+                }
+            }
+        }
+
+        // Draw nodes
+        for (let n of graph.nodes) {
+            noStroke();
+            fill(mouseX > n.x - 15 && mouseX < n.x + 15 && mouseY > n.y - 15 && mouseY < n.y + 15 ? '#60a5fa' : '#3b82f6');
+            ellipse(n.x, n.y, 20, 20);
+            fill('#1e293b');
+            textSize(14);
+            textAlign(CENTER);
+            text(n.label, n.x, n.y - 25);
+        }
+    }
+
+    // Default graph
+    const defaultGraph = `5 6
+0 1 5 arterial
+1 2 10 arterial
+2 3 15 local
+0 2 20 highway
+1 4 8 arterial
+4 3 7 arterial
+100 100
+300 150
+500 200
+200 400
+400 350`;
+
+    // Initialize
+    window.onload = () => {
+        document.getElementById('graph-input').value = defaultGraph;
+        if (localStorage.getItem('savedGraph')) document.getElementById('graph-input').value = localStorage.getItem('savedGraph');
+        loadGraph();
+    };
+
+    function downloadGraphPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Get the graph input text
+        const graphText = document.getElementById('graph-input').value;
+
+        // Add a title
+        doc.setFontSize(16);
+        doc.text("Ambulance Route Graph", 10, 15);
+
+        // Add the graph text (start at y=25, split into lines)
+        doc.setFontSize(12);
+        const lines = doc.splitTextToSize(graphText, 180);
+        doc.text(lines, 10, 25);
+
+        // Save the PDF
+        doc.save("ambulance-graph.pdf");
+    }
+</script>
+</body>
+</html>
